@@ -9,6 +9,7 @@ Nice BiDi-WiFi interface.
 
 This integration talks directly to the BiDi-WiFi local NHK/T4 service over
 TLS/TCP 443 and creates one `cover` entity plus helper diagnostic entities.
+It does **not** use the MyNice cloud at runtime.
 
 The local TLS endpoint on tested BiDi-WiFi firmware uses a device certificate
 that cannot be validated against Home Assistant's normal trust store. The
@@ -150,7 +151,25 @@ BiDi-WiFi can be sensitive to concurrent local sessions.
 
 ## Extract Credentials
 
-The integration needs the local credential stored by the normal MyNice app.
+The integration needs the local NHK credential stored by the normal MyNice app.
+This is a **local device secret**, not a cloud session. In other words:
+
+- runtime gate control is local over Wi‑Fi/TLS to the BiDi-WiFi IP
+- the MyNice cloud is not used by Home Assistant for open/close/status
+- but IP reachability alone is not enough; the BiDi still expects valid NHK credentials
+
+If you want to verify the local endpoint before extracting credentials, use the
+read-only probe from this fork:
+
+```bash
+python3 scripts/probe_local_access.py \
+  --host <bidi_ip> \
+  --target-mac "AA:BB:CC:DD:EE:FF"
+```
+
+The probe performs a TLS handshake, sends unauthenticated/local-invalid NHK
+requests, and reports whether the local protocol is visible plus whether local
+control appears to require authentication. It does not move the gate.
 
 ### iPhone
 
