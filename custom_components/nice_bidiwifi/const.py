@@ -10,6 +10,7 @@ CONF_DEVICE_ID = "device_id"
 CONF_SOURCE_ID = "source_id"
 CONF_TARGET_MAC = "target_mac"
 CONF_T4_TIMEOUT_MS = "t4_timeout_ms"
+CONF_TLS_FINGERPRINT = "tls_fingerprint"
 
 DEFAULT_NAME = "Nice Gate"
 DEFAULT_PORT = 443
@@ -31,4 +32,5 @@ CONFIG_FIELDS = {
     CONF_TARGET_MAC,
     CONF_DEVICE_ID,
     CONF_T4_TIMEOUT_MS,
+    CONF_TLS_FINGERPRINT,
 }

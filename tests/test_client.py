@@ -18,8 +18,10 @@ from custom_components.nice_bidiwifi.client import (
     NiceBidiCredentials,
     NiceBidiDeviceInfo,
     NiceBidiStatus,
+    NiceBidiTlsFingerprintError,
     _frame,
     _make_context,
+    _normalize_tls_fingerprint,
     _random_t4_key,
     _xml_escape,
     _xml_payload,
@@ -152,6 +154,20 @@ def test_tls_context_keeps_device_compatible_insecure_mode() -> None:
     assert context.check_hostname is False
     assert context.verify_mode == ssl.CERT_NONE
     assert context.minimum_version == ssl.TLSVersion.TLSv1_2
+
+
+def test_normalize_tls_fingerprint_accepts_hex_with_separators() -> None:
+    """Test TLS fingerprint normalization."""
+    assert (
+        _normalize_tls_fingerprint("AA:BB:CC:DD:" + "11" * 14 + ":22" * 14)
+        == "aabbccdd" + "11" * 14 + "22" * 14
+    )
+
+
+def test_normalize_tls_fingerprint_rejects_invalid_length() -> None:
+    """Test TLS fingerprint validation."""
+    with pytest.raises(NiceBidiTlsFingerprintError):
+        _normalize_tls_fingerprint("abcd")
 
 
 def test_read_status_combines_registers_into_status() -> None:

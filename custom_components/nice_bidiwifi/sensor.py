@@ -55,7 +55,7 @@ SENSORS: tuple[NiceBidiSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         icon="mdi:alert-circle-outline",
-        value_fn=lambda coordinator: coordinator.last_error or "none",
+        value_fn=lambda coordinator: "present" if coordinator.last_error else "none",
     ),
     NiceBidiSensorEntityDescription(
         key="reconnect_count",
@@ -105,7 +105,7 @@ SENSORS: tuple[NiceBidiSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
         icon="mdi:alert-circle-outline",
-        value_fn=lambda coordinator: coordinator.calibration_last_error or "none",
+        value_fn=lambda coordinator: "present" if coordinator.calibration_last_error else "none",
     ),
     NiceBidiSensorEntityDescription(
         key="position_calibration_quality",

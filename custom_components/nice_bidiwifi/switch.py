@@ -34,6 +34,7 @@ class NiceBidiCoverSwitch(CoordinatorEntity[NiceBidiDataUpdateCoordinator], Swit
     _attr_has_entity_name = True
     _attr_name = None
     _attr_icon = "mdi:gate"
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: NiceBidiDataUpdateCoordinator, entry: ConfigEntry) -> None:
         """Initialize the switch."""

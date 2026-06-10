@@ -21,12 +21,14 @@ from custom_components.nice_bidiwifi import config_flow
 from custom_components.nice_bidiwifi.client import (
     NiceBidiAuthError,
     NiceBidiConnectionError,
+    NiceBidiTlsFingerprintError,
 )
 from custom_components.nice_bidiwifi.const import (
     CONF_DEVICE_ID,
     CONF_SOURCE_ID,
     CONF_T4_TIMEOUT_MS,
     CONF_TARGET_MAC,
+    CONF_TLS_FINGERPRINT,
     DOMAIN,
 )
 from tests.conftest import config_entry_data
@@ -41,6 +43,9 @@ class FakeClient:
     def __init__(self, **kwargs: Any) -> None:
         self.kwargs = kwargs
         self.closed = False
+        self.peer_cert_fingerprint = kwargs.get("tls_fingerprint") or (
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        )
         FakeClient.instances.append(self)
 
     def test_connection(self) -> None:
@@ -89,6 +94,10 @@ async def test_user_step_success_creates_entry(hass: HomeAssistant) -> None:
     assert result["data"][CONF_HOST] == "192.0.2.10"
     assert result["data"][CONF_TARGET_MAC] == "AA:BB:CC:DD:EE:FF"
     assert result["data"][CONF_PASSWORD] == "AA" * 32
+    assert (
+        result["data"][CONF_TLS_FINGERPRINT]
+        == "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    )
     assert FakeClient.instances[0].kwargs["host"] == "192.0.2.10"
     assert FakeClient.instances[0].kwargs["port"] == 443
     assert FakeClient.instances[0].closed is True
@@ -120,6 +129,18 @@ async def test_user_step_connection_error_returns_form(hass: HomeAssistant) -> N
     assert FakeClient.instances[0].closed is True
 
 
+async def test_user_step_tls_fingerprint_error_returns_form(hass: HomeAssistant) -> None:
+    """Test TLS fingerprint mismatch handling."""
+    FakeClient.connect_error = NiceBidiTlsFingerprintError("mismatch")
+
+    with patch.object(config_flow, "NiceBidiClient", FakeClient):
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], _input())
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"]["base"] == "invalid_tls_fingerprint"
+
+
 async def test_reauth_success_updates_entry_and_reloads(hass: HomeAssistant) -> None:
     """Test a successful reauthentication flow."""
     entry = MockConfigEntry(
@@ -147,6 +168,10 @@ async def test_reauth_success_updates_entry_and_reloads(hass: HomeAssistant) -> 
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
     assert entry.data[CONF_HOST] == "192.0.2.11"
+    assert (
+        entry.data[CONF_TLS_FINGERPRINT]
+        == "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    )
     mock_reload.assert_called_once_with(entry.entry_id)
 
 
@@ -201,6 +226,10 @@ async def test_reconfigure_success_updates_entry_and_reloads(hass: HomeAssistant
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
     assert entry.data[CONF_PORT] == 8443
+    assert (
+        entry.data[CONF_TLS_FINGERPRINT]
+        == "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    )
     mock_reload.assert_called_once_with(entry.entry_id)
 
 
@@ -237,6 +266,7 @@ def test_schema_uses_home_assistant_selectors() -> None:
     assert isinstance(schema[CONF_PASSWORD], selector.TextSelector)
     assert isinstance(schema[CONF_PORT], selector.NumberSelector)
     assert isinstance(schema[CONF_T4_TIMEOUT_MS], selector.NumberSelector)
+    assert isinstance(schema[CONF_TLS_FINGERPRINT], selector.TextSelector)
 
 
 def test_normalize_input_strips_text_and_uppercases_binary_fields() -> None:
@@ -249,5 +279,6 @@ def test_normalize_input_strips_text_and_uppercases_binary_fields() -> None:
     assert normalized[CONF_TARGET_MAC] == "AA:BB:CC:DD:EE:FF"
     assert normalized[CONF_PASSWORD] == "AA" * 32
     assert normalized[CONF_SOURCE_ID] == "source"
+    assert CONF_TLS_FINGERPRINT not in normalized
     assert normalized[CONF_DEVICE_ID] == 1
     assert normalized[CONF_T4_TIMEOUT_MS] == 200

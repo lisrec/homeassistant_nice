@@ -13,7 +13,8 @@
           "password": "NHK password hex",
           "source_id": "Source/controller ID",
           "device_id": "Device ID",
-          "t4_timeout_ms": "T4 timeout in milliseconds"
+          "t4_timeout_ms": "T4 timeout in milliseconds",
+          "tls_fingerprint": "TLS SHA-256 fingerprint"
         },
         "data_description": {
           "name": "Display name for this gate in Home Assistant.",
@@ -24,7 +25,8 @@
           "password": "64-character hexadecimal NHK password from the extracted MyNice credentials.",
           "source_id": "Source/controller ID from the extracted MyNice credentials. Leave empty to use the username.",
           "device_id": "NHK device ID to control. Leave at 1 unless troubleshooting a different device.",
-          "t4_timeout_ms": "Timeout sent inside local T4 requests, in milliseconds."
+          "t4_timeout_ms": "Timeout sent inside local T4 requests, in milliseconds.",
+          "tls_fingerprint": "Optional SHA-256 fingerprint pin for the BiDi-WiFi TLS certificate. Leave empty on first pairing to capture and store it automatically."
         }
       },
       "reauth_confirm": {
@@ -39,7 +41,8 @@
           "password": "NHK password hex",
           "source_id": "Source/controller ID",
           "device_id": "Device ID",
-          "t4_timeout_ms": "T4 timeout in milliseconds"
+          "t4_timeout_ms": "T4 timeout in milliseconds",
+          "tls_fingerprint": "TLS SHA-256 fingerprint"
         },
         "data_description": {
           "name": "Display name for this gate in Home Assistant.",
@@ -50,7 +53,8 @@
           "password": "64-character hexadecimal NHK password from the extracted MyNice credentials.",
           "source_id": "Source/controller ID from the extracted MyNice credentials. Leave empty to use the username.",
           "device_id": "NHK device ID to control. Leave at 1 unless troubleshooting a different device.",
-          "t4_timeout_ms": "Timeout sent inside local T4 requests, in milliseconds."
+          "t4_timeout_ms": "Timeout sent inside local T4 requests, in milliseconds.",
+          "tls_fingerprint": "Optional SHA-256 fingerprint pin for the BiDi-WiFi TLS certificate. Leave empty on first pairing to capture and store it automatically."
         }
       },
       "reconfigure": {
@@ -65,7 +69,8 @@
           "password": "NHK password hex",
           "source_id": "Source/controller ID",
           "device_id": "Device ID",
-          "t4_timeout_ms": "T4 timeout in milliseconds"
+          "t4_timeout_ms": "T4 timeout in milliseconds",
+          "tls_fingerprint": "TLS SHA-256 fingerprint"
         },
         "data_description": {
           "name": "Display name for this gate in Home Assistant.",
@@ -76,13 +81,15 @@
           "password": "64-character hexadecimal NHK password from the extracted MyNice credentials.",
           "source_id": "Source/controller ID from the extracted MyNice credentials. Leave empty to use the username.",
           "device_id": "NHK device ID to control. Leave at 1 unless troubleshooting a different device.",
-          "t4_timeout_ms": "Timeout sent inside local T4 requests, in milliseconds."
+          "t4_timeout_ms": "Timeout sent inside local T4 requests, in milliseconds.",
+          "tls_fingerprint": "Optional SHA-256 fingerprint pin for the BiDi-WiFi TLS certificate. Leave empty on first pairing to capture and store it automatically."
         }
       }
     },
     "error": {
       "cannot_connect": "Failed to connect. Check LAN access to TCP 443, close MyNice/MyNice Pro, then try again.",
       "invalid_auth": "Authentication failed. Check the extracted username, source ID, target MAC, and password.",
+      "invalid_tls_fingerprint": "TLS fingerprint mismatch. Confirm the local device certificate fingerprint or clear the field to recapture it during trusted first pairing.",
       "unknown": "Unexpected error",
       "wrong_device": "The MAC address does not match this configured BiDi-WiFi."
     },

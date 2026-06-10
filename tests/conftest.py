@@ -146,13 +146,13 @@ class FakeCoordinator:
         self.last_update_success = True
         self.connection_state = "connected"
         self.last_successful_update = datetime(2026, 5, 28, tzinfo=UTC)
-        self.last_error = None
+        self.last_error: str | None = None
         self.client = FakeClient()
         self.last_command = "open"
         self.last_command_latency_ms = 123
         self.calibration_state = "calibrated"
         self.calibration_updated_at = datetime(2026, 5, 27, tzinfo=UTC)
-        self.calibration_last_error = None
+        self.calibration_last_error: str | None = None
         self.calibration_quality = "good"
         self.calibration_report_summary = "good: 8/8 repeatable targets"
         self.calibration_report_attributes = {"quality": "good", "point_count": 8}

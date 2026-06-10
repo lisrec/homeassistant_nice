@@ -26,6 +26,13 @@ TO_REDACT = {
 }
 
 
+def _error_summary(error: str | None) -> str | None:
+    """Return a low-sensitivity summary of an error string."""
+    if not error:
+        return None
+    return error.split(":", 1)[0][:120]
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -39,7 +46,7 @@ async def async_get_config_entry_diagnostics(
         "entry": dict(entry.data),
         "connection": {
             "state": coordinator.connection_state,
-            "last_error": coordinator.last_error,
+            "last_error": _error_summary(coordinator.last_error),
             "last_successful_update": (
                 coordinator.last_successful_update.isoformat()
                 if coordinator.last_successful_update
@@ -69,7 +76,7 @@ async def async_get_config_entry_diagnostics(
             "updated_at": coordinator.calibration_updated_at.isoformat()
             if coordinator.calibration_updated_at
             else None,
-            "last_error": coordinator.calibration_last_error,
+            "last_error": _error_summary(coordinator.calibration_last_error),
             "summary": coordinator.calibration_report_summary,
         },
     }

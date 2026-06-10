@@ -7,6 +7,7 @@ from typing import Any
 from homeassistant.components.cover import ATTR_POSITION, CoverDeviceClass, CoverEntity, CoverEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -34,12 +35,6 @@ class NiceBidiCover(CoordinatorEntity[NiceBidiDataUpdateCoordinator], CoverEntit
     _attr_device_class = CoverDeviceClass.GATE
     _attr_has_entity_name = True
     _attr_name = None
-    _attr_supported_features = (
-        CoverEntityFeature.OPEN
-        | CoverEntityFeature.CLOSE
-        | CoverEntityFeature.STOP
-        | CoverEntityFeature.SET_POSITION
-    )
 
     def __init__(self, coordinator: NiceBidiDataUpdateCoordinator, entry: ConfigEntry) -> None:
         """Initialize the cover."""
@@ -101,6 +96,27 @@ class NiceBidiCover(CoordinatorEntity[NiceBidiDataUpdateCoordinator], CoverEntit
         return status.state == STATE_CLOSING or self.coordinator.position_simulation_action == "close"
 
     @property
+    def supported_features(self) -> CoverEntityFeature:
+        """Return supported cover features, enabling set-position only when calibrated."""
+        features = (
+            CoverEntityFeature.OPEN
+            | CoverEntityFeature.CLOSE
+            | CoverEntityFeature.STOP
+        )
+        if self._set_position_is_safe:
+            features |= CoverEntityFeature.SET_POSITION
+        return features
+
+    @property
+    def _set_position_is_safe(self) -> bool:
+        """Return whether set-position is considered safe enough to expose."""
+        return (
+            self.coordinator.calibration_state == "calibrated"
+            and self.coordinator.calibration_quality == "good"
+            and self.coordinator.display_position is not None
+        )
+
+    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return diagnostic attributes."""
         status = self.status
@@ -121,7 +137,7 @@ class NiceBidiCover(CoordinatorEntity[NiceBidiDataUpdateCoordinator], CoverEntit
             "position_calibration_state": self.coordinator.calibration_state,
             "position_calibration_quality": self.coordinator.calibration_quality,
             "position_calibration_updated_at": self.coordinator.calibration_updated_at,
-            "dmp_registers": status.registers,
+            "set_position_available": self._set_position_is_safe,
         }
 
     async def async_open_cover(self, **kwargs: Any) -> None:
@@ -138,4 +154,8 @@ class NiceBidiCover(CoordinatorEntity[NiceBidiDataUpdateCoordinator], CoverEntit
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
         """Move toward a target position and stop after reaching it."""
+        if not self._set_position_is_safe:
+            raise HomeAssistantError(
+                "Set position is disabled until position calibration quality is good"
+            )
         await self.coordinator.async_set_position(kwargs[ATTR_POSITION])

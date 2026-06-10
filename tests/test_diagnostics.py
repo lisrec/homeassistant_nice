@@ -14,6 +14,8 @@ from tests.conftest import FakeCoordinator, config_entry
 async def test_diagnostics_redacts_sensitive_data(hass) -> None:
     """Test diagnostics redacts credentials and local identifiers."""
     coordinator = FakeCoordinator()
+    coordinator.last_error = "socket timeout: device did not respond"
+    coordinator.calibration_last_error = "bad sample: retry needed"
     entry = config_entry()
     entry.runtime_data = coordinator
 
@@ -26,6 +28,8 @@ async def test_diagnostics_redacts_sensitive_data(hass) -> None:
     assert diagnostics["entry"][CONF_SOURCE_ID] == "**REDACTED**"
     assert diagnostics["device_info"]["interface_serial"] == "**REDACTED**"
     assert diagnostics["device_info"]["device_serial"] == "**REDACTED**"
+    assert diagnostics["connection"]["last_error"] == "socket timeout"
+    assert diagnostics["calibration"]["last_error"] == "bad sample"
     assert diagnostics["status"] == {
         "state": "opening",
         "position": 42.4,

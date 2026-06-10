@@ -13,7 +13,8 @@
           "password": "Contrasenya NHK en hexadecimal",
           "source_id": "ID d'origen/controlador",
           "device_id": "ID del dispositiu",
-          "t4_timeout_ms": "Temps d'espera T4 en mil·lisegons"
+          "t4_timeout_ms": "Temps d'espera T4 en mil·lisegons",
+          "tls_fingerprint": "Empremta TLS SHA-256"
         },
         "data_description": {
           "name": "Nom visible d'aquesta porta a Home Assistant.",
@@ -24,7 +25,8 @@
           "password": "Contrasenya NHK hexadecimal de 64 caràcters extreta de les credencials de MyNice.",
           "source_id": "ID d'origen/controlador extret de les credencials de MyNice. Deixa'l buit per utilitzar el nom d'usuari.",
           "device_id": "ID de dispositiu NHK que es vol controlar. Mantén 1 excepte si estàs diagnosticant un altre dispositiu.",
-          "t4_timeout_ms": "Temps d'espera enviat dins de les sol·licituds T4 locals, en mil·lisegons."
+          "t4_timeout_ms": "Temps d'espera enviat dins de les sol·licituds T4 locals, en mil·lisegons.",
+          "tls_fingerprint": "Empremta SHA-256 opcional per fixar el certificat TLS del BiDi-WiFi. Deixa-la buida en el primer aparellament per capturar-la i desar-la automàticament."
         }
       },
       "reauth_confirm": {
@@ -39,7 +41,8 @@
           "password": "Contrasenya NHK en hexadecimal",
           "source_id": "ID d'origen/controlador",
           "device_id": "ID del dispositiu",
-          "t4_timeout_ms": "Temps d'espera T4 en mil·lisegons"
+          "t4_timeout_ms": "Temps d'espera T4 en mil·lisegons",
+          "tls_fingerprint": "Empremta TLS SHA-256"
         },
         "data_description": {
           "name": "Nom visible d'aquesta porta a Home Assistant.",
@@ -50,7 +53,8 @@
           "password": "Contrasenya NHK hexadecimal de 64 caràcters extreta de les credencials de MyNice.",
           "source_id": "ID d'origen/controlador extret de les credencials de MyNice. Deixa'l buit per utilitzar el nom d'usuari.",
           "device_id": "ID de dispositiu NHK que es vol controlar. Mantén 1 excepte si estàs diagnosticant un altre dispositiu.",
-          "t4_timeout_ms": "Temps d'espera enviat dins de les sol·licituds T4 locals, en mil·lisegons."
+          "t4_timeout_ms": "Temps d'espera enviat dins de les sol·licituds T4 locals, en mil·lisegons.",
+          "tls_fingerprint": "Empremta SHA-256 opcional per fixar el certificat TLS del BiDi-WiFi. Deixa-la buida en el primer aparellament per capturar-la i desar-la automàticament."
         }
       },
       "reconfigure": {
@@ -65,7 +69,8 @@
           "password": "Contrasenya NHK en hexadecimal",
           "source_id": "ID d'origen/controlador",
           "device_id": "ID del dispositiu",
-          "t4_timeout_ms": "Temps d'espera T4 en mil·lisegons"
+          "t4_timeout_ms": "Temps d'espera T4 en mil·lisegons",
+          "tls_fingerprint": "Empremta TLS SHA-256"
         },
         "data_description": {
           "name": "Nom visible d'aquesta porta a Home Assistant.",
@@ -76,13 +81,15 @@
           "password": "Contrasenya NHK hexadecimal de 64 caràcters extreta de les credencials de MyNice.",
           "source_id": "ID d'origen/controlador extret de les credencials de MyNice. Deixa'l buit per utilitzar el nom d'usuari.",
           "device_id": "ID de dispositiu NHK que es vol controlar. Mantén 1 excepte si estàs diagnosticant un altre dispositiu.",
-          "t4_timeout_ms": "Temps d'espera enviat dins de les sol·licituds T4 locals, en mil·lisegons."
+          "t4_timeout_ms": "Temps d'espera enviat dins de les sol·licituds T4 locals, en mil·lisegons.",
+          "tls_fingerprint": "Empremta SHA-256 opcional per fixar el certificat TLS del BiDi-WiFi. Deixa-la buida en el primer aparellament per capturar-la i desar-la automàticament."
         }
       }
     },
     "error": {
       "cannot_connect": "No s'ha pogut connectar. Comprova l'accés LAN al port TCP 443, tanca MyNice/MyNice Pro i torna-ho a provar.",
       "invalid_auth": "L'autenticació ha fallat. Comprova el nom d'usuari extret, l'ID d'origen, la MAC de destinació i la contrasenya.",
+      "invalid_tls_fingerprint": "L'empremta TLS no coincideix. Confirma l'empremta del certificat local del dispositiu o esborra el camp per recapturar-la durant un primer aparellament de confiança.",
       "unknown": "Error inesperat",
       "wrong_device": "L'adreça MAC no coincideix amb aquest BiDi-WiFi configurat."
     },

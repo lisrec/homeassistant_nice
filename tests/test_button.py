@@ -95,3 +95,29 @@ def test_reconnect_and_refresh_buttons_remain_available_when_coordinator_failed(
     assert buttons["reconnect"].available is True
     assert buttons["partial_open_1"].available is False
     assert buttons["calibrate_positions"].available is False
+
+
+def test_risky_buttons_are_disabled_by_default() -> None:
+    """Test potentially risky command buttons are opt-in in the entity registry."""
+    coordinator = FakeCoordinator()
+    entry = config_entry()
+    buttons = {
+        entity.entity_description.key: entity
+        for entity in (NiceBidiButton(coordinator, entry, description) for description in BUTTONS)
+    }
+
+    for key in (
+        "partial_open_1",
+        "partial_open_2",
+        "partial_open_3",
+        "step_step",
+        "courtesy_light",
+        "courtesy_light_timer",
+        "lock",
+        "unlock",
+        "calibrate_positions",
+    ):
+        assert buttons[key].entity_registry_enabled_default is False
+
+    assert buttons["refresh_status"].entity_registry_enabled_default is True
+    assert buttons["reconnect"].entity_registry_enabled_default is True

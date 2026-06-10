@@ -1,8 +1,10 @@
-"""Tests for the Nice BiDi-WiFi cover entity."""
+"""Tests for Nice BiDi-WiFi cover entity."""
 
 from __future__ import annotations
 
+import pytest
 from homeassistant.components.cover import CoverEntityFeature
+from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.nice_bidiwifi.cover import NiceBidiCover
 from tests.conftest import FakeCoordinator, config_entry, make_status
@@ -23,6 +25,12 @@ class TestNiceBidiCoverProperties:
         assert entity.supported_features & CoverEntityFeature.CLOSE
         assert entity.supported_features & CoverEntityFeature.STOP
         assert entity.supported_features & CoverEntityFeature.SET_POSITION
+
+    def test_supported_features_disable_set_position_without_good_calibration(self) -> None:
+        coordinator = FakeCoordinator()
+        coordinator.calibration_quality = "poor"
+        entity = NiceBidiCover(coordinator, config_entry())
+        assert not entity.supported_features & CoverEntityFeature.SET_POSITION
 
     def test_current_cover_position(self) -> None:
         coordinator = FakeCoordinator()
@@ -73,6 +81,7 @@ class TestNiceBidiCoverProperties:
         assert attrs["display_position_estimated"] is False
         assert attrs["position_calibration_state"] == "calibrated"
         assert attrs["position_calibration_quality"] == "good"
+        assert attrs["set_position_available"] is True
 
 
 class TestNiceBidiCoverCommands:
@@ -99,3 +108,11 @@ class TestNiceBidiCoverCommands:
         await entity.async_set_cover_position(position=55)
 
         assert coordinator.calls == [("position", 55)]
+
+    async def test_set_cover_position_raises_when_calibration_not_good(self) -> None:
+        coordinator = FakeCoordinator()
+        coordinator.calibration_quality = "poor"
+        entity = NiceBidiCover(coordinator, config_entry())
+
+        with pytest.raises(HomeAssistantError):
+            await entity.async_set_cover_position(position=55)

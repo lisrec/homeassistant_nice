@@ -12,12 +12,19 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
-from .client import NiceBidiAuthError, NiceBidiClient, NiceBidiConnectionError, NiceBidiCredentials
+from .client import (
+    NiceBidiAuthError,
+    NiceBidiClient,
+    NiceBidiConnectionError,
+    NiceBidiCredentials,
+    NiceBidiTlsFingerprintError,
+)
 from .const import (
     CONF_SOURCE_ID,
     CONF_DEVICE_ID,
     CONF_T4_TIMEOUT_MS,
     CONF_TARGET_MAC,
+    CONF_TLS_FINGERPRINT,
     DEFAULT_DEVICE_ID,
     DEFAULT_NAME,
     DEFAULT_PORT,
@@ -52,6 +59,7 @@ _TIMEOUT_SELECTOR = selector.NumberSelector(
         unit_of_measurement="ms",
     )
 )
+_TLS_FINGERPRINT_SELECTOR = selector.TextSelector(selector.TextSelectorConfig())
 
 
 def _schema(user_input: dict[str, Any] | None = None) -> vol.Schema:
@@ -67,17 +75,28 @@ def _schema(user_input: dict[str, Any] | None = None) -> vol.Schema:
             vol.Optional(CONF_SOURCE_ID, default=user_input.get(CONF_SOURCE_ID, "")): _TEXT_SELECTOR,
             vol.Optional(CONF_DEVICE_ID, default=user_input.get(CONF_DEVICE_ID, DEFAULT_DEVICE_ID)): _DEVICE_ID_SELECTOR,
             vol.Optional(CONF_T4_TIMEOUT_MS, default=user_input.get(CONF_T4_TIMEOUT_MS, DEFAULT_T4_TIMEOUT_MS)): _TIMEOUT_SELECTOR,
+            vol.Optional(CONF_TLS_FINGERPRINT, default=user_input.get(CONF_TLS_FINGERPRINT, "")): _TLS_FINGERPRINT_SELECTOR,
         }
     )
 
 
 def _normalize_input(user_input: dict[str, Any]) -> dict[str, Any]:
     data = dict(user_input)
-    for key in (CONF_NAME, CONF_HOST, CONF_TARGET_MAC, CONF_USERNAME, CONF_PASSWORD, CONF_SOURCE_ID):
+    for key in (
+        CONF_NAME,
+        CONF_HOST,
+        CONF_TARGET_MAC,
+        CONF_USERNAME,
+        CONF_PASSWORD,
+        CONF_SOURCE_ID,
+        CONF_TLS_FINGERPRINT,
+    ):
         if key in data and isinstance(data[key], str):
             data[key] = data[key].strip()
     data[CONF_TARGET_MAC] = data[CONF_TARGET_MAC].upper()
     data[CONF_PASSWORD] = data[CONF_PASSWORD].upper()
+    if not data.get(CONF_TLS_FINGERPRINT):
+        data.pop(CONF_TLS_FINGERPRINT, None)
     for key in (CONF_PORT, CONF_DEVICE_ID, CONF_T4_TIMEOUT_MS):
         if key in data:
             data[key] = int(data[key])
@@ -90,7 +109,7 @@ def _merge_entry_data(entry: ConfigEntry, user_input: dict[str, Any]) -> dict[st
     return _normalize_input(data)
 
 
-def _test_connection(data: dict[str, Any]) -> None:
+def _test_connection(data: dict[str, Any]) -> dict[str, Any]:
     credentials = NiceBidiCredentials(
         username=data[CONF_USERNAME],
         password_hex=data[CONF_PASSWORD],
@@ -104,20 +123,26 @@ def _test_connection(data: dict[str, Any]) -> None:
         device_id=data.get(CONF_DEVICE_ID, DEFAULT_DEVICE_ID),
         timeout=DEFAULT_TIMEOUT,
         t4_timeout_ms=data.get(CONF_T4_TIMEOUT_MS, DEFAULT_T4_TIMEOUT_MS),
+        tls_fingerprint=data.get(CONF_TLS_FINGERPRINT),
     )
     try:
         client.test_connection()
+        return {
+            CONF_TLS_FINGERPRINT: client.peer_cert_fingerprint,
+        }
     finally:
         client.close()
 
 
-async def _async_validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
-    await hass.async_add_executor_job(_test_connection, data)
+async def _async_validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
+    return await hass.async_add_executor_job(_test_connection, data)
 
 
 def _error_from_exception(err: Exception) -> str:
     if isinstance(err, NiceBidiAuthError):
         return "invalid_auth"
+    if isinstance(err, NiceBidiTlsFingerprintError):
+        return "invalid_tls_fingerprint"
     if isinstance(err, NiceBidiConnectionError | OSError):
         return "cannot_connect"
     return "unknown"
@@ -137,10 +162,12 @@ class NiceBidiConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             data = _normalize_input(user_input)
             try:
-                await _async_validate_input(self.hass, data)
+                validation = await _async_validate_input(self.hass, data)
             except Exception as err:
                 errors["base"] = _error_from_exception(err)
             else:
+                if not data.get(CONF_TLS_FINGERPRINT) and validation.get(CONF_TLS_FINGERPRINT):
+                    data[CONF_TLS_FINGERPRINT] = validation[CONF_TLS_FINGERPRINT]
                 await self.async_set_unique_id(data[CONF_TARGET_MAC])
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(title=data[CONF_NAME], data=data)
@@ -174,10 +201,12 @@ class NiceBidiConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "wrong_device"
             else:
                 try:
-                    await _async_validate_input(self.hass, data)
+                    validation = await _async_validate_input(self.hass, data)
                 except Exception as err:
                     errors["base"] = _error_from_exception(err)
                 else:
+                    if not data.get(CONF_TLS_FINGERPRINT) and validation.get(CONF_TLS_FINGERPRINT):
+                        data[CONF_TLS_FINGERPRINT] = validation[CONF_TLS_FINGERPRINT]
                     self.hass.config_entries.async_update_entry(
                         entry,
                         title=data[CONF_NAME],
@@ -207,10 +236,12 @@ class NiceBidiConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "wrong_device"
             else:
                 try:
-                    await _async_validate_input(self.hass, data)
+                    validation = await _async_validate_input(self.hass, data)
                 except Exception as err:
                     errors["base"] = _error_from_exception(err)
                 else:
+                    if not data.get(CONF_TLS_FINGERPRINT) and validation.get(CONF_TLS_FINGERPRINT):
+                        data[CONF_TLS_FINGERPRINT] = validation[CONF_TLS_FINGERPRINT]
                     self.hass.config_entries.async_update_entry(
                         entry,
                         title=data[CONF_NAME],

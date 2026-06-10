@@ -66,6 +66,10 @@ class NiceBidiConnectionError(NiceBidiError):
     """Connection failed or device did not respond."""
 
 
+class NiceBidiTlsFingerprintError(NiceBidiConnectionError):
+    """TLS fingerprint verification failed."""
+
+
 @dataclass(frozen=True)
 class NiceBidiCredentials:
     """Credentials needed for NHK local authentication."""
@@ -397,6 +401,20 @@ def parse_info_xml(info_xml: str, device_id: int = 1) -> NiceBidiDeviceInfo:
 T4_RE = re.compile(r"<T4\b(?P<attrs>[^>]*)>(?P<body>.*?)</T4>", re.DOTALL)
 
 
+def _normalize_tls_fingerprint(fingerprint: str | None) -> str | None:
+    """Normalize a SHA-256 fingerprint string to lowercase hex without separators."""
+    if fingerprint is None:
+        return None
+    normalized = re.sub(r"[^0-9a-fA-F]", "", fingerprint)
+    if not normalized:
+        return None
+    if len(normalized) != 64:
+        raise NiceBidiTlsFingerprintError("TLS fingerprint must contain exactly 64 hexadecimal characters")
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", normalized):
+        raise NiceBidiTlsFingerprintError("TLS fingerprint must be hexadecimal")
+    return normalized.lower()
+
+
 class NiceBidiClient:
     """Persistent local NHK client for a Nice BiDi-WiFi."""
 
@@ -409,6 +427,7 @@ class NiceBidiClient:
         device_id: int = 1,
         timeout: float = 10.0,
         t4_timeout_ms: int = 200,
+        tls_fingerprint: str | None = None,
     ) -> None:
         self.host = host
         self.port = port
@@ -416,18 +435,26 @@ class NiceBidiClient:
         self.device_id = device_id
         self.timeout = timeout
         self.t4_timeout_ms = t4_timeout_ms
+        self.tls_fingerprint = _normalize_tls_fingerprint(tls_fingerprint)
         self._socket: ssl.SSLSocket | None = None
         self._session_id = 0
         self._session_key: bytes | None = None
         self._sequence = 1
         self._lock = threading.RLock()
         self._reconnect_count = 0
+        self._peer_cert_fingerprint: str | None = None
 
     @property
     def reconnect_count(self) -> int:
         """Return the number of internal reconnect attempts."""
         with self._lock:
             return self._reconnect_count
+
+    @property
+    def peer_cert_fingerprint(self) -> str | None:
+        """Return the last seen peer certificate SHA-256 fingerprint."""
+        with self._lock:
+            return self._peer_cert_fingerprint
 
     def close(self) -> None:
         """Close the current session."""
@@ -493,8 +520,22 @@ class NiceBidiClient:
                     do_handshake_on_connect=False,
                 )
                 tls_sock.do_handshake()
+                cert = tls_sock.getpeercert(binary_form=True)
+                fingerprint = hashlib.sha256(cert).hexdigest().lower() if cert else None
+                if self.tls_fingerprint and fingerprint != self.tls_fingerprint:
+                    raise NiceBidiTlsFingerprintError(
+                        "TLS fingerprint mismatch for Nice BiDi-WiFi device"
+                    )
+                self._peer_cert_fingerprint = fingerprint
                 self._socket = tls_sock
                 return
+            except NiceBidiTlsFingerprintError as exc:
+                last_error = exc
+                if tls_sock:
+                    tls_sock.close()
+                elif raw:
+                    raw.close()
+                break
             except (OSError, ssl.SSLError) as exc:
                 last_error = exc
                 if tls_sock:
